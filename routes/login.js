@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
       nombreCompleto: user.obtenerNombreCompleto()
     };
 
-    console.log('Inicio de sesión exitoso para:', userResponse.nombreCompleto);
+    console.log('Inicio de sesión exitoso para:', userResponse.nombreCompleto, userResponse.id);
 
     res.status(200).json({ 
       message: 'Inicio de sesión exitoso', 
