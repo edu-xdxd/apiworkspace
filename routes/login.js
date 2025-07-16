@@ -57,7 +57,7 @@ router.post('/', async (req, res) => {
 
     // Preparar respuesta sin incluir la contraseña
     const userResponse = {
-      id: user._id,
+      userId: user._id,
       nombre: user.nombre,
       apellido: user.apellido,
       correo: user.correo,
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
       nombreCompleto: user.obtenerNombreCompleto()
     };
 
-    console.log('Inicio de sesión exitoso para:', userResponse.nombreCompleto, userResponse.id);
+    console.log('Inicio de sesión exitoso para:', userResponse.nombreCompleto, userResponse.userId);
 
     res.status(200).json({ 
       message: 'Inicio de sesión exitoso', 
