@@ -9,6 +9,7 @@ const auth = require('./routes/auth');
 const users = require('./routes/users');
 const sensorData = require('./routes/sensorData');
 const login = require('./routes/login');
+const entorno = require('./routes/entorno');
 
 console.log("Mongo URI:", process.env.MONGODB_URI);
 
@@ -23,6 +24,7 @@ app.use('/', auth);
 app.use('/users', users);
 app.use('/sensor-data', sensorData);
 app.use('/login', login);
+app.use('/entorno', entorno);
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => console.log(`Servidor escuchando en puerto ${PORT}`));
