@@ -74,7 +74,7 @@ async function actualizarSensoresEnSensorData(sensores, usuario, deviceId = null
 router.post('/', async (req, res) => {
   try {
     // Validar que los campos requeridos estén presentes
-    let { nombre, horaInicio, horaFin, sensores, diasSemana, playlist, usuario, deviceId } = req.body;
+    let { nombre, horaInicio, horaFin, sensores, diasSemana, playlist, usuario, deviceId, estado } = req.body;
     
     console.log(req.body);
     
@@ -114,6 +114,13 @@ router.post('/', async (req, res) => {
     if (sensores && !Array.isArray(sensores)) {
       return res.status(400).json({ 
         error: 'El campo sensores debe ser un array' 
+      });
+    }
+
+    // Validar estado si se proporciona
+    if (estado !== undefined && typeof estado !== 'boolean') {
+      return res.status(400).json({ 
+        error: 'El campo estado debe ser un valor booleano (true/false)' 
       });
     }
 
@@ -168,7 +175,8 @@ router.post('/', async (req, res) => {
       sensores: sensores || [], // Array de objetos sensor completos
       diasSemana: diasSemana || [], // Array de días de la semana
       playlist: playlist || [], // Array de objetos playlist
-      usuario: new mongoose.Types.ObjectId(usuario) // Convertir string a ObjectId
+      usuario: new mongoose.Types.ObjectId(usuario), // Convertir string a ObjectId
+      estado: estado !== undefined ? estado : true // Usar el valor proporcionado o true por defecto
     });
 
     const savedEntorno = await entorno.save();
@@ -196,7 +204,7 @@ router.post('/', async (req, res) => {
 // Obtener todos los entornos
 router.get('/', async (req, res) => {
   try {
-    const entornos = await Entorno.find({}, 'nombre horaInicio horaFin').exec();
+    const entornos = await Entorno.find({}, 'nombre horaInicio horaFin estado').exec();
     res.json(entornos);
   } catch (err) {
     console.error('Error al obtener entornos:', err);
@@ -222,7 +230,7 @@ router.get('/usuario/:usuarioId', async (req, res) => {
 
     const entornos = await Entorno.find({ 
       usuario: new mongoose.Types.ObjectId(usuarioId) 
-    }, 'nombre horaInicio horaFin').exec();
+    }, 'usuario nombre horaInicio horaFin estado').exec();
     
     res.json({
       message: `Entornos encontrados para el usuario ${usuarioId}`,
@@ -255,7 +263,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, horaInicio, horaFin, sensores, diasSemana, playlist, deviceId, usuario } = req.body;
+    const { nombre, horaInicio, horaFin, sensores, diasSemana, playlist, deviceId, estado, usuario } = req.body;
     
     // Validar formato de hora si se proporciona
     if (horaInicio || horaFin) {
@@ -265,6 +273,13 @@ router.put('/:id', async (req, res) => {
           error: 'El formato de hora debe ser HH:mm (ejemplo: 09:30)' 
         });
       }
+    }
+
+    // Validar estado si se proporciona
+    if (estado !== undefined && typeof estado !== 'boolean') {
+      return res.status(400).json({ 
+        error: 'El campo estado debe ser un valor booleano (true/false)' 
+      });
     }
 
     // Validar sensores si se proporcionan
@@ -312,7 +327,7 @@ router.put('/:id', async (req, res) => {
 
     const updatedEntorno = await Entorno.findByIdAndUpdate(
       id,
-      { nombre, horaInicio, horaFin, sensores, diasSemana, playlist },
+      { nombre, horaInicio, horaFin, sensores, diasSemana, playlist, estado },
       { new: true, runValidators: true }
     );
 
@@ -665,6 +680,56 @@ router.get('/parametros/:entornoId/usuario/:usuarioId', async (req, res) => {
   } catch (err) {
     console.error('Error al obtener parámetros del entorno:', err);
     res.status(500).json({ error: 'Error al obtener los parámetros del entorno' });
+  }
+});
+
+// PUT /entorno/toggle/:entornoId/usuario/:usuarioId - Cambiar el estado de un entorno (activar/desactivar)
+router.put('/toggle/:entornoId/usuario/:usuarioId', async (req, res) => {
+  try {
+    const { entornoId, usuarioId } = req.params;
+
+    // Validar que los IDs sean ObjectId válidos
+    if (!mongoose.Types.ObjectId.isValid(entornoId)) {
+      return res.status(400).json({ error: 'El ID de entorno no es válido' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(usuarioId)) {
+      return res.status(400).json({ error: 'El ID de usuario no es válido' });
+    }
+
+    // Buscar el entorno actual
+    const entornoActual = await Entorno.findOne({
+      _id: entornoId,
+      usuario: new mongoose.Types.ObjectId(usuarioId)
+    });
+
+    if (!entornoActual) {
+      return res.status(404).json({ error: 'Entorno no encontrado para este usuario' });
+    }
+
+    // Cambiar el estado al opuesto
+    const nuevoEstado = !entornoActual.estado;
+
+    // Actualizar el entorno
+    const entorno = await Entorno.findOneAndUpdate(
+      {
+        _id: entornoId,
+        usuario: new mongoose.Types.ObjectId(usuarioId)
+      },
+      { estado: nuevoEstado },
+      { new: true, runValidators: true }
+    );
+
+    res.json({
+      message: `Entorno ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`,
+      entorno: {
+        id: entorno._id,
+        nombre: entorno.nombre,
+        estado: entorno.estado
+      }
+    });
+  } catch (err) {
+    console.error('Error al cambiar estado del entorno:', err);
+    res.status(500).json({ error: 'Error al cambiar el estado del entorno' });
   }
 });
 

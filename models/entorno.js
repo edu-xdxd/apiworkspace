@@ -24,7 +24,8 @@ const EntornoSchema = new mongoose.Schema({
   sensores: [SensorSchema], // Array de objetos sensor completos
   diasSemana: [{ type: String, enum: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] }],
   playlist: [PlaylistSchema],
-  usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  estado: { type: Boolean, default: false } // true = activo, false = inactivo
 });
 
 module.exports = mongoose.model('Entorno', EntornoSchema); 
