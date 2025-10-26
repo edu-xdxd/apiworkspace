@@ -1,5 +1,6 @@
 const express = require('express');
 const SensorData = require('../models/sensorData');
+const Entorno = require('../models/entorno');
 const router = express.Router();
 const mongoose = require('mongoose');
 
@@ -165,15 +166,77 @@ router.get('/usuario/:usuarioId', async (req, res) => {
       });
     }
 
+    // Obtener datos de sensores del usuario
     const sensorData = await SensorData.find({ 
       usuario: new mongoose.Types.ObjectId(usuarioId) 
     }).sort({ timestamp: -1 });
 
+    // Obtener entornos del usuario
+    const entornos = await Entorno.find({ 
+      usuario: new mongoose.Types.ObjectId(usuarioId) 
+    });
+
+    // Extraer sensores únicos de los entornos
+    const sensoresEntorno = [];
+    const playlistsEntorno = [];
+    
+    entornos.forEach(entorno => {
+      // Agregar sensores del entorno
+      if (entorno.sensores && entorno.sensores.length > 0) {
+        entorno.sensores.forEach(sensor => {
+          // Verificar si el sensor ya existe para evitar duplicados
+          const sensorExistente = sensoresEntorno.find(s => 
+            s.idSensor === sensor.idSensor && s.nombreSensor === sensor.nombreSensor
+          );
+          if (!sensorExistente) {
+            sensoresEntorno.push({
+              ...sensor.toObject(),
+              entorno: entorno.nombre,
+              estadoEntorno: entorno.estado,
+              diasActivo: entorno.diasSemana
+            });
+          }
+        });
+      }
+      
+      // Agregar playlists del entorno
+      if (entorno.playlist && entorno.playlist.length > 0) {
+        entorno.playlist.forEach(playlist => {
+          const playlistExistente = playlistsEntorno.find(p => p.id === playlist.id);
+          if (!playlistExistente) {
+            playlistsEntorno.push({
+              ...playlist.toObject(),
+              entorno: entorno.nombre,
+              estadoEntorno: entorno.estado,
+              diasActivo: entorno.diasSemana,
+              horario: {
+                inicio: entorno.horaInicio,
+                fin: entorno.horaFin
+              }
+            });
+          }
+        });
+      }
+    });
+
     res.status(200).json({
       message: 'Datos de sensores del usuario obtenidos exitosamente',
       usuario: usuarioId,
-      count: sensorData.length,
-      data: sensorData
+      sensorData: {
+        count: sensorData.length,
+        data: sensorData
+      },
+      entornos: {
+        count: entornos.length,
+        sensores: {
+          count: sensoresEntorno.length,
+          data: sensoresEntorno
+        },
+        playlists: {
+          count: playlistsEntorno.length,
+          data: playlistsEntorno
+        }
+      }
     });
   } catch (error) {
     console.error('Error al obtener datos de sensores del usuario:', error);

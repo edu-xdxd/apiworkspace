@@ -241,6 +241,95 @@ router.get('/usuario/:usuarioId', async (req, res) => {
     console.error('Error al obtener entornos por usuario:', err);
     res.status(500).json({ error: 'Error al obtener los entornos del usuario' });
   }
+});  
+
+//obtener entornos por usuario -- completo
+router.get('/usuario/completo/:usuarioId', async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(usuarioId)) {
+      return res.status(400).json({ 
+        error: 'El ID de usuario no es válido' 
+      });
+    }
+
+    // Obtener datos de sensores del usuario
+    const sensorData = await SensorData.find({ 
+      usuario: new mongoose.Types.ObjectId(usuarioId) 
+    }).sort({ timestamp: -1 });
+
+    // Obtener entornos del usuario
+    const entornos = await Entorno.find({ 
+      usuario: new mongoose.Types.ObjectId(usuarioId) 
+    });
+
+    // Preparar estructura de datos compatible con Android
+    const entornosFormateados = entornos.map(entorno => ({
+      _id: entorno._id.toString(),
+      nombre: entorno.nombre,
+      horaInicio: entorno.horaInicio,
+      horaFin: entorno.horaFin,
+      estado: entorno.estado,
+      usuario: entorno.usuario.toString(),
+      sensores: [], // Se llenará en datosEntorno
+      playlist: entorno.playlist ? entorno.playlist.map(playlist => ({
+        id: playlist.id,
+        tema: playlist.tema || null,
+        nombre: playlist.nombre || null
+      })) : []
+    }));
+
+    // Preparar datos detallados de entornos
+    const datosEntorno = entornos.map(entorno => {
+      // Obtener sensores del entorno con sus datos más recientes
+      const sensoresConDatos = [];
+      
+      if (entorno.sensores && entorno.sensores.length > 0) {
+        entorno.sensores.forEach(sensor => {
+          // Buscar el dato más reciente para este sensor
+          const datoReciente = sensorData.find(dato => 
+            dato.idSensor === sensor.idSensor
+          );
+          
+          sensoresConDatos.push({
+            idSensor: sensor.idSensor,
+            nombreSensor: sensor.nombreSensor,
+            tipoSensor: sensor.tipoSensor || 'Desconocido',
+            valorSensor: datoReciente ? datoReciente.valorSensor : 0,
+            color: sensor.color || null
+          });
+        });
+      }
+
+      return {
+        id: entorno._id.toString(),
+        nombre: entorno.nombre,
+        horaInicio: entorno.horaInicio,
+        horaFin: entorno.horaFin,
+        estado: entorno.estado,
+        sensordata: sensoresConDatos,
+        playlist: entorno.playlist ? entorno.playlist.map(playlist => ({
+          id: playlist.id,
+          tema: playlist.tema || null,
+          nombre: playlist.nombre || null
+        })) : []
+      };
+    });
+
+    // Respuesta compatible con la estructura esperada por Android
+    res.status(200).json({
+      message: 'Datos de entornos del usuario obtenidos exitosamente',
+      count: entornos.length,
+      entornos: entornosFormateados,
+      datosEntorno: datosEntorno
+    });
+  } catch (error) {
+    console.error('Error al obtener datos de entornos del usuario:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor al obtener los datos' 
+    });
+  }
 });
 
 // Obtener un entorno por ID
