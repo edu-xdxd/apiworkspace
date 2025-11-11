@@ -273,6 +273,7 @@ router.get('/usuario/completo/:usuarioId', async (req, res) => {
       estado: entorno.estado,
       usuario: entorno.usuario.toString(),
       sensores: [], // Se llenará en datosEntorno
+      diasSemana: entorno.diasSemana || [],
       playlist: entorno.playlist ? entorno.playlist.map(playlist => ({
         id: playlist.id,
         tema: playlist.tema || null,
@@ -309,6 +310,7 @@ router.get('/usuario/completo/:usuarioId', async (req, res) => {
         horaFin: entorno.horaFin,
         estado: entorno.estado,
         sensordata: sensoresConDatos,
+        diasSemana: entorno.diasSemana || [],
         playlist: entorno.playlist ? entorno.playlist.map(playlist => ({
           id: playlist.id,
           tema: playlist.tema || null,
