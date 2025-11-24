@@ -197,7 +197,7 @@ mongoose.connection.once('open', () => {
   verificarEntornos();
   
   // Configurar verificación cada 1 minuto (60000 ms)
-  setInterval(verificarEntornos, 60000);
+  setInterval(verificarEntornos, 10000);
   console.log('Verificación de entornos configurada para ejecutarse cada 1 minuto');
 });
 
